@@ -121,6 +121,20 @@ by
   · intro t₁ t₂ ih₁ ih₂
     simp [ih₁, ih₂]
 
+-- Prove that Jc commutes with conjₛₗ, thus making it ℂ-linear
+theorem Jc_conjₛₗ (acs : AlmostComplexStructure (I := I) (M := M)) (x : M)
+    (t : TangentSpaceC (I := I) (x := x)) :
+    acs.Jc (I := I) (M := M) x (conjₛₗ (I := I) (x := x) t)
+      = conjₛₗ (I := I) (x := x) (acs.Jc (I := I) (M := M) x t) := by
+  classical
+  refine TensorProduct.induction_on t ?h0 ?htmul ?hadd
+  · simp [AlmostComplexStructure.conjₛₗ]
+  · intro z v
+    simp [AlmostComplexStructure.conjₛₗ, AlmostComplexStructure.conj₁,
+      AlmostComplexStructure.Jc, AlmostComplexStructure.Jc₁]
+  · intro t₁ t₂ ih₁ ih₂
+    simp [map_add, ih₁, ih₂]
+
 -- Define the (1,0) and (0,1) subspaces of the complexified tangent space
 def T01 (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
     Submodule ℂ (TangentSpaceC (I := I) (x := x)) :=
@@ -129,6 +143,26 @@ def T01 (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
 def T10 (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
     Submodule ℂ (TangentSpaceC (I := I) (x := x)) :=
   (acs.T01 x).map (AlmostComplexStructure.conjₛₗ (I := I) (x := x))
+
+-- Prove that T10 is actually the eigenspace for eigenvalue i
+theorem T10_le_eigenspace_i (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
+    acs.T10 (I := I) (M := M) x ≤ Module.End.eigenspace (acs.Jc x) (Complex.I) := by
+  intro t ht
+  rcases ht with ⟨u, hu, rfl⟩
+  have hu_eq : acs.Jc x u = (-Complex.I) • u := by
+    dsimp [AlmostComplexStructure.T01] at hu
+    exact (Module.End.mem_eigenspace_iff).1 hu
+  have : acs.Jc x (conjₛₗ (I := I) (x := x) u)
+        = (Complex.I) • conjₛₗ (I := I) (x := x) u := by
+    calc
+      acs.Jc x (conjₛₗ (I := I) (x := x) u)
+          = conjₛₗ (I := I) (x := x) (acs.Jc x u) := by
+              simpa using (acs.Jc_conjₛₗ (I := I) (M := M) x u)
+      _ = conjₛₗ (I := I) (x := x) ((-Complex.I) • u) := by
+              simp [hu_eq]
+      _ = (Complex.I) • conjₛₗ (I := I) (x := x) u := by
+              simp
+  exact (Module.End.mem_eigenspace_iff).2 this
 
 end AlmostComplexStructure
 end
