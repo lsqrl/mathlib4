@@ -135,6 +135,18 @@ theorem Jc_conjₛₗ (acs : AlmostComplexStructure (I := I) (M := M)) (x : M)
   · intro t₁ t₂ ih₁ ih₂
     simp [map_add, ih₁, ih₂]
 
+-- conjugation is an involution on the complexification
+theorem conjₛₗ_conjₛₗ (x : M) (t : TangentSpaceC (I := I) (x := x)) :
+    conjₛₗ (I := I) (x := x) (conjₛₗ (I := I) (x := x) t) = t := by
+  classical
+  refine TensorProduct.induction_on t ?h0 ?htmul ?hadd
+  · simp [conjₛₗ]
+  · intro z v
+    simp [conjₛₗ, conj₁]
+  · intro t₁ t₂ ih₁ ih₂
+    simp [map_add, ih₁, ih₂]
+
+
 -- Define the (1,0) and (0,1) subspaces of the complexified tangent space
 def T01 (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
     Submodule ℂ (TangentSpaceC (I := I) (x := x)) :=
@@ -163,6 +175,36 @@ theorem T10_le_eigenspace_i (acs : AlmostComplexStructure (I := I) (M := M)) (x 
       _ = (Complex.I) • conjₛₗ (I := I) (x := x) u := by
               simp
   exact (Module.End.mem_eigenspace_iff).2 this
+
+
+theorem eigenspace_i_le_T10 (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
+    Module.End.eigenspace (acs.Jc x) (Complex.I) ≤ acs.T10 (I := I) (M := M) x := by
+  intro t ht
+  have ht_eq : acs.Jc x t = (Complex.I) • t := by
+    exact (Module.End.mem_eigenspace_iff).1 ht
+  have hconj : acs.Jc x (conjₛₗ (I := I) (x := x) t)
+        = (-Complex.I) • conjₛₗ (I := I) (x := x) t := by
+    calc
+      acs.Jc x (conjₛₗ (I := I) (x := x) t)
+          = conjₛₗ (I := I) (x := x) (acs.Jc x t) := by
+              simpa using (acs.Jc_conjₛₗ (I := I) (M := M) x t)
+      _ = conjₛₗ (I := I) (x := x) ((Complex.I) • t) := by
+              simp [ht_eq]
+      _ = (-Complex.I) • conjₛₗ (I := I) (x := x) t := by
+              simp
+  have hT01 : conjₛₗ (I := I) (x := x) t ∈ acs.T01 (I := I) (M := M) x := by
+    dsimp [AlmostComplexStructure.T01]
+    exact (Module.End.mem_eigenspace_iff).2 hconj
+  refine ?_
+  refine ⟨conjₛₗ (I := I) (x := x) t, hT01, ?_⟩
+  simpa using (conjₛₗ_conjₛₗ (I := I) (x := x) t)
+
+theorem T10_eq_eigenspace_i (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
+    acs.T10 (I := I) (M := M) x = Module.End.eigenspace (acs.Jc x) (Complex.I) := by
+  apply le_antisymm
+  · exact acs.T10_le_eigenspace_i (I := I) (M := M) x
+  · exact acs.eigenspace_i_le_T10 (I := I) (M := M) x
+
 
 end AlmostComplexStructure
 end
