@@ -18,7 +18,7 @@ public import Mathlib.Geometry.Manifold.IsManifold.Basic
 
 @[expose] public section
 
-open scoped Manifold TensorProduct Algebra
+open scoped Manifold TensorProduct Algebra ComplexConjugate
 
 namespace Manifold
 
@@ -43,8 +43,8 @@ abbrev TangentSpaceC (x : M) :=
 noncomputable section
 
 namespace AlmostComplexStructure
-
--- `acs.J x` is ℝ-linear on the tangent space; we extend it to a ℝ-linear map on the complexified:
+/-- `acs.J x` is ℝ-linear on the tangent space; we extend it to a ℝ-linear map on the complexified
+by tensoring with the identity on ℂ. -/
 def Jc₁ (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
     TangentSpaceC (I := I) (x := x) →ₗ[ℝ] TangentSpaceC (I := I) (x := x) :=
   TensorProduct.map (LinearMap.id : ℂ →ₗ[ℝ] ℂ) (acs.J x)
@@ -88,7 +88,38 @@ theorem Jc_sq (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
   · intro t₁ t₂ ih₁ ih₂
     simp [map_add, ih₁, ih₂]
 
+/-- ℝ-linear conjugation on ℂ ⊗[ℝ] V:  (z ⊗ v) ↦ (conj z) ⊗ v
+ defined as the tensor product conj ⊗ Id -/
+noncomputable def conj₁ (x : M) :
+    TangentSpaceC (I := I) (x := x) →ₗ[ℝ] TangentSpaceC (I := I) (x := x) :=
+  TensorProduct.map (Complex.conjCLE : ℂ →ₗ[ℝ] ℂ)
+    (LinearMap.id : TangentSpace I x →ₗ[ℝ] TangentSpace I x)
 
+/-- prove that conj₁(z ⊗ₜ[ℝ] v) = (conj z) ⊗ₜ[ℝ] v -/
+@[simp] lemma conj₁_tmul (x : M) (z : ℂ) (v : TangentSpace I x) :
+    conj₁ (I := I) (x := x) (z ⊗ₜ[ℝ] v) = (conj z) ⊗ₜ[ℝ] v := by
+  simp [conj₁]
+
+/-- Extend conj₁ to a semilinear map on the complexified tangent space -/
+noncomputable def conjₛₗ (x : M) :
+    TangentSpaceC (I := I) (x := x) →ₛₗ[starRingEnd ℂ] TangentSpaceC (I := I) (x := x) :=
+by
+  classical
+  refine
+    { toFun := conj₁ (I := I) (x := x)
+      map_add' := by
+        intro a b
+        simp [conj₁]
+      map_smul' := ?_ }
+  intro c t
+  -- prove semilinearity by tensor induction
+  refine TensorProduct.induction_on t ?h0 ?htmul ?hadd
+  · simp [conj₁]
+  · intro z v
+    -- `c • (z ⊗ v) = (c*z) ⊗ v`, and `conj (c*z) = conj c * conj z`
+    simp [conj₁, TensorProduct.smul_tmul']
+  · intro t₁ t₂ ih₁ ih₂
+    simp [ih₁, ih₂]
 
 -- Define the (1,0) and (0,1) subspaces of the complexified tangent space
 def T01 (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
@@ -97,7 +128,7 @@ def T01 (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
 
 def T10 (acs : AlmostComplexStructure (I := I) (M := M)) (x : M) :
     Submodule ℂ (TangentSpaceC (I := I) (x := x)) :=
-  Module.End.eigenspace (acs.Jc x) (Complex.I)
+  (acs.T01 x).map (AlmostComplexStructure.conjₛₗ (I := I) (x := x))
 
 end AlmostComplexStructure
 end
